@@ -5,26 +5,110 @@ const regd_users = express.Router();
 
 let users = [];
 
-const isValid = (username)=>{ //returns boolean
-//write code to check is the username is valid
+// check if the user exists
+const doesExist = (username) => {
+    let userswithsamename = users.filter((user) => {
+        return user.username === username;
+    });
+    if(userswithsamename.length > 0){
+        return true;
+    } else {
+        return false;
+    }
 }
 
-const authenticatedUser = (username,password)=>{ //returns boolean
-//write code to check if username and password match the one we have in records.
+// check if username is valid
+const isValid = (username) => {
+    const res = /^[a-zA-Z0-9_\-]+$/.exec(username);
+    const valid = !!res;
+    if (username.length >= 8 && valid) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+const invalidUsernameResponse = "Username must be at least 8 characters, can only use letters, numbers, underscores, and dashes.";
+
+const authenticatedUser = (username,password) => { 
+    let validusers = users.filter((user) => {
+        return (user.username === username && user.password === password)
+    });
+    if(validusers.length > 0){
+        return true;
+    } else {
+        return false;
+    }
 }
 
 //only registered users can login
 regd_users.post("/login", (req,res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+    const username = req.body.username;
+    const password = req.body.password;
+
+    if (!username || !password) {
+        return res.status(404).json({message: "Error logging in"});
+    }
+  
+    if (authenticatedUser(username,password)) {
+        let accessToken = jwt.sign(
+            {data: password}, 'access', { expiresIn: 60 * 60 });  
+        req.session.authorization = {
+            accessToken, username
+        }
+        return res.status(200).send("User successfully logged in");
+    } else {
+      return res.status(208).json({message: "Invalid Login. Check username and password"});
+    }
 });
 
 // Add a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+    username = req.session.authorization["username"];
+    isbn = req.params.isbn;
+    review = req.query.review;
+
+    // filtered_details = Object.entries(books).filter(([k,v]) => v["isbn"] == isbn);
+
+    // if (filtered_details.length > 0) {
+    //     [key, book_details] = filtered_details[0];
+    //     books[key]["reviews"][String(username)] = review;   // update review for specific book, username
+    //     return res.status(200).send(`Added/modified review for user ${username}`);
+    // }
+    if (isbn in books) {
+        books[isbn]["reviews"][String(username)] = review;   // update review for specific book, username
+        return res.status(200).send(`Added/modified review for user ${username}\n`+JSON.stringify(books[isbn], null, 3));
+    }
+    return res.status(404).send(`ISBN ${isbn} not found`);
+});
+
+// delete a book review for specific user
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+    username = req.session.authorization["username"];
+    isbn = req.params.isbn;
+
+    // filtered_details = Object.entries(books).filter(([k,v]) => v["isbn"] == isbn);
+
+    // if (filtered_details.length > 0) {
+    //     [key, book_details] = filtered_details[0];
+    //     if (books[key]["reviews"].hasOwnProperty(String(username))) {
+    //         delete books[key]["reviews"][String(username)];
+    //         return res.status(200).send(`Deleted review for user ${username}`);
+    //     }
+    //     return res.status(200).send(`Review for user ${username} not found.`);
+    // }
+    if (isbn in books) {
+        if (books[isbn]["reviews"].hasOwnProperty(String(username))) {
+            delete books[isbn]["reviews"][String(username)];
+            return res.status(200).send(`Deleted review for user ${username}\n`+JSON.stringify(books[isbn], null, 3));
+        }
+        return res.status(200).send(`Review for user ${username} not found.`);
+    }
+    return res.status(404).send(`ISBN ${isbn} not found`);
 });
 
 module.exports.authenticated = regd_users;
 module.exports.isValid = isValid;
+module.exports.doesExist = doesExist;
 module.exports.users = users;
+module.exports.invalidUsernameResponse = invalidUsernameResponse;
