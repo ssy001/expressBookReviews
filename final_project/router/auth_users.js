@@ -21,7 +21,6 @@ const doesExist = (username) => {
 const isValid = (username) => {
     const res = /^[a-zA-Z0-9_\-]+$/.exec(username);
     const valid = !!res;
-    // console.log(valid, res);
     if (username.length >= 8 && valid) {
         return true;
     }
@@ -65,47 +64,45 @@ regd_users.post("/login", (req,res) => {
 
 // Add a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
-    // console.log(req.user);
     username = req.session.authorization["username"];
-    // console.log(username);
     isbn = req.params.isbn;
-    // console.log(isbn);
     review = req.query.review;
-    // console.log(review);
 
-    filtered_details = Object.entries(books).filter(([k,v]) => v["isbn"] == isbn);
-    // console.log(filtered_details);
+    // filtered_details = Object.entries(books).filter(([k,v]) => v["isbn"] == isbn);
 
-    if (filtered_details.length > 0) {
-        [key, book_details] = filtered_details[0];
-        // console.log(key, book_details);
-        books[key]["reviews"][String(username)] = review;   // update review for specific book, username
-        return res.status(200).send(`Added/modified review for user ${username}`);
-        // return res.status(200).send(JSON.stringify(book_details, null, 3));
+    // if (filtered_details.length > 0) {
+    //     [key, book_details] = filtered_details[0];
+    //     books[key]["reviews"][String(username)] = review;   // update review for specific book, username
+    //     return res.status(200).send(`Added/modified review for user ${username}`);
+    // }
+    if (isbn in books) {
+        books[isbn]["reviews"][String(username)] = review;   // update review for specific book, username
+        return res.status(200).send(`Added/modified review for user ${username}\n`+JSON.stringify(books[isbn], null, 3));
     }
     return res.status(404).send(`ISBN ${isbn} not found`);
 });
 
 // delete a book review for specific user
 regd_users.delete("/auth/review/:isbn", (req, res) => {
-    // console.log(req.user);
     username = req.session.authorization["username"];
-    // console.log(username);
     isbn = req.params.isbn;
-    // console.log(isbn);
 
-    filtered_details = Object.entries(books).filter(([k,v]) => v["isbn"] == isbn);
-    // console.log(filtered_details);
+    // filtered_details = Object.entries(books).filter(([k,v]) => v["isbn"] == isbn);
 
-    if (filtered_details.length > 0) {
-        [key, book_details] = filtered_details[0];
-        // console.log(key, book_details);
-        if (books[key]["reviews"].hasOwnProperty(String(username))) {
-            delete books[key]["reviews"][String(username)];
-            return res.status(200).send(`Deleted review for user ${username}`);
+    // if (filtered_details.length > 0) {
+    //     [key, book_details] = filtered_details[0];
+    //     if (books[key]["reviews"].hasOwnProperty(String(username))) {
+    //         delete books[key]["reviews"][String(username)];
+    //         return res.status(200).send(`Deleted review for user ${username}`);
+    //     }
+    //     return res.status(200).send(`Review for user ${username} not found.`);
+    // }
+    if (isbn in books) {
+        if (books[isbn]["reviews"].hasOwnProperty(String(username))) {
+            delete books[isbn]["reviews"][String(username)];
+            return res.status(200).send(`Deleted review for user ${username}\n`+JSON.stringify(books[isbn], null, 3));
         }
         return res.status(200).send(`Review for user ${username} not found.`);
-        // return res.status(200).send(JSON.stringify(book_details, null, 3));
     }
     return res.status(404).send(`ISBN ${isbn} not found`);
 });
